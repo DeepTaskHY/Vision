@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="vision" name="vision_node" type="launch_vision.py" output="screen"/>
+</launch>
