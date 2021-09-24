@@ -14,6 +14,7 @@ import os
 import numpy as np
 import time
 
+from dtroslib.helpers import get_package_path
 
 _count = 0
 
@@ -28,7 +29,7 @@ class FaceRecognizer:
         self.known_face_names = []
 
         # Load sample pictures and learn how to recognize it.
-        dirname = '../data/known_face'
+        dirname = get_package_path('vision') + '/data/known_face'
         files = os.listdir(dirname)
         for filename in files:
             name, ext = os.path.splitext(filename)
