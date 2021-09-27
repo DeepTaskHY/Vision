@@ -1,22 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import rospy
-from std_msgs.msg import String
-from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge, CvBridgeError
-import json
-
 import cv2
 import face_recognition
-
-import os
+import json
 import numpy as np
+import os
+import rospy
 import time
-
+from cv_bridge import CvBridge, CvBridgeError
 from dtroslib.helpers import get_package_path
+from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import String
 
 _count = 0
+
 
 class FaceRecognizer:
     def __init__(self):
@@ -132,13 +130,13 @@ class VideoCamera(object):
 
 def to_ros_msg(data):
     global _count
-    
+
     json_msg = {
         'header': {
             'source': 'vision',
             'target': ['planning'],
             'content': 'face_recognition',
-            'id': _count+1
+            'id': _count + 1
         },
         'face_recognition': {
             'face_id': data,
@@ -160,21 +158,21 @@ if __name__ == '__main__':
     fr = FaceRecognizer()
 
     rate = rospy.Rate(fr.camera.fps)
-    
+
     while not rospy.is_shutdown():
         frame, face_names = fr.get_frame()
         cv2.imshow('Frame', frame)
         key = cv2.waitKey(1) & 0xFF
-    
+
         if key == ord('q'):
             break
-        
+
         try:
             img_msg = bridge.cv2_to_imgmsg(frame, "bgr8")
             img_pub.publish(img_msg)
         except CvBridgeError as err:
             print(err)
-        
+
         try:
             publisher.publish(to_ros_msg(face_names[0]))
         except:
@@ -197,5 +195,3 @@ if __name__ == '__main__':
     #     #     publisher.publish(to_ros_msg(face_names[0]))
     #
     # cv2.destroyAllWindows()
-
-
