@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import rospy
-from std_msgs.msg import String
-from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge, CvBridgeError
-import json
-
 import cv2
 import face_recognition
-
-import os
+import json
 import numpy as np
+import os
+import rospy
 import time
-
+from cv_bridge import CvBridge, CvBridgeError
 from dtroslib.helpers import get_package_path
+from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import String
+
 
 test_path = get_package_path('vision')
 # test_path = '..'
 
 _count = 0
+
 
 class FaceRecognizer:
     def __init__(self):
@@ -166,12 +165,6 @@ if __name__ == '__main__':
     
     while not rospy.is_shutdown():
         frame, face_names = fr.get_frame()
-        # cv2.imshow('Frame', frame)
-        key = cv2.waitKey(1) & 0xFF
-    
-        if key == ord('q'):
-            break
-        
         try:
             img_msg = bridge.cv2_to_imgmsg(frame, "bgr8")
             img_pub.publish(img_msg)
@@ -184,22 +177,3 @@ if __name__ == '__main__':
             pass
 
         rate.sleep()
-
-    # cv2.destroyAllWindows()
-
-    # while True:
-    #     frame, face_names = fr.get_frame()
-    #
-    #     cv2.imshow('Frame', frame)
-    #     key = cv2.waitKey(1) & 0xFF
-    #
-    #     if key == ord('q'):
-    #         break
-    #
-    #     # if len(face_names) != 0:
-    #     #     rospy.loginfo(face_names[0])
-    #     #     publisher.publish(to_ros_msg(face_names[0]))
-    #
-    # cv2.destroyAllWindows()
-
-
