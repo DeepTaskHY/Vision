@@ -16,6 +16,9 @@ import time
 
 from dtroslib.helpers import get_package_path
 
+test_path = get_package_path('vision')
+# test_path = '..'
+
 _count = 0
 
 class FaceRecognizer:
@@ -29,7 +32,7 @@ class FaceRecognizer:
         self.known_face_names = []
 
         # Load sample pictures and learn how to recognize it.
-        dirname = get_package_path('vision') + '/data/known_face'
+        dirname = test_path + '/data/known_face'
         files = os.listdir(dirname)
         for filename in files:
             name, ext = os.path.splitext(filename)
@@ -163,7 +166,7 @@ if __name__ == '__main__':
     
     while not rospy.is_shutdown():
         frame, face_names = fr.get_frame()
-        cv2.imshow('Frame', frame)
+        # cv2.imshow('Frame', frame)
         key = cv2.waitKey(1) & 0xFF
     
         if key == ord('q'):
@@ -182,7 +185,8 @@ if __name__ == '__main__':
 
         rate.sleep()
 
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
+
     # while True:
     #     frame, face_names = fr.get_frame()
     #
