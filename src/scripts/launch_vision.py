@@ -10,7 +10,7 @@ import rospy
 import time
 from cv_bridge import CvBridge, CvBridgeError
 from dtroslib.helpers import get_package_path
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import CompressedImage, CameraInfo
 from std_msgs.msg import String
 
 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     rospy.init_node('vision_node')
     rospy.loginfo('Start Vision')
     publisher = rospy.Publisher('/recognition/face_id', String, queue_size=10)
-    img_pub = rospy.Publisher("/recognition/image_raw", Image, queue_size=10)
+    img_pub = rospy.Publisher("/recognition/image/compressed", CompressedImage, queue_size=10)
     bridge = CvBridge()
 
     fr = FaceRecognizer()
@@ -165,8 +165,9 @@ if __name__ == '__main__':
     
     while not rospy.is_shutdown():
         frame, face_names = fr.get_frame()
+
         try:
-            img_msg = bridge.cv2_to_imgmsg(frame, "bgr8")
+            img_msg = bridge.cv2_to_compressed_imgmsg(frame, "jpg")
             img_pub.publish(img_msg)
         except CvBridgeError as err:
             print(err)
