@@ -131,5 +131,8 @@ dmypy.json
 # IDEA
 .idea/
 
+# Face recognition samples
+/src/data/known_face/*
+
 # Keep the folder by keeping .gitkeep
 !/**/.gitkeep
