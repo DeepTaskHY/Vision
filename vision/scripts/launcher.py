@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import cv2
 import face_recognition
@@ -133,7 +133,7 @@ class VideoCamera(object):
 
 def to_ros_msg(data):
     global _count
-    
+
     json_msg = {
         'header': {
             'source': 'vision',
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     fr = FaceRecognizer()
 
     rate = rospy.Rate(fr.camera.fps)
-    
+
     while not rospy.is_shutdown():
         frame, face_names = fr.get_frame()
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
             img_pub.publish(img_msg)
         except CvBridgeError as err:
             print(err)
-        
+
         try:
             publisher.publish(to_ros_msg(face_names[0]))
         except:
