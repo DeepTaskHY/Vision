@@ -27,29 +27,38 @@ class FaceRecognizer:
         self.camera = VideoCamera()
 
         self.known_face_encodings = []
-        self.known_face_names = []
+        self.known_face_ids = []
 
         # Load sample pictures and learn how to recognize it.
-        dirname = test_path + '/data/known_face'
-        files = os.listdir(dirname)
+        self.dirname = test_path + '/data/known_face'
+        files = os.listdir(self.dirname)
         for filename in files:
-            name, ext = os.path.splitext(filename)
-            name = name.split('_')[0]
+            fid, ext = os.path.splitext(filename)
+            fid = int(fid.split('_')[0])
             if ext == '.jpg':
-                self.known_face_names.append(name)
-                pathname = os.path.join(dirname, filename)
+                pathname = os.path.join(self.dirname, filename)
                 img = face_recognition.load_image_file(pathname)
-                face_encoding = face_recognition.face_encodings(img)[0]
-                self.known_face_encodings.append(face_encoding)
+                face_encoding = face_recognition.face_encodings(img).get(0)
+                if face_encoding is not None:
+                    self.known_face_ids.append(fid)
+                    self.known_face_encodings.append(face_encoding)
 
         # Initialize some variables
         self.face_locations = []
         self.face_encodings = []
-        self.face_names = []
+        self.face_ids = []
         self.process_this_frame = True
 
     def __del__(self):
         del self.camera
+
+    def register_new_face(self, new_face_img, new_face_encoding):
+        new_face_id = max(self.known_face_ids) + 1
+        cv2.imwrite(os.path.join(
+            self.dirname, f'{new_face_id}.jpg'), new_face_img)
+        self.known_face_encodings.append(new_face_encoding)
+        self.known_face_ids.append(new_face_id)
+        return new_face_id
 
     def get_frame(self):
         # Grab a single frame of video
@@ -64,28 +73,33 @@ class FaceRecognizer:
         # Only process every other frame of video to save time
         if self.process_this_frame:
             # Find all the faces and face encodings in the current frame of video
-            self.face_locations = face_recognition.face_locations(rgb_small_frame)
-            self.face_encodings = face_recognition.face_encodings(rgb_small_frame, self.face_locations)
+            self.face_locations = face_recognition.face_locations(
+                rgb_small_frame)
+            self.face_encodings = face_recognition.face_encodings(
+                rgb_small_frame, self.face_locations)
 
-            self.face_names = []
+            self.face_ids = []
             for face_encoding in self.face_encodings:
                 # See if the face is a match for the known face(s)
-                distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                distances = face_recognition.face_distance(
+                    self.known_face_encodings, face_encoding)
                 min_value = min(distances)
 
                 # tolerance: How much distance between faces to consider it a match. Lower is more strict.
                 # 0.6 is typical best performance.
-                name = "Unknown"
+                # name = "Unknown"
                 if min_value < 0.6:
                     index = np.argmin(distances)
-                    name = self.known_face_names[index]
+                    fid = self.known_face_ids[index]
+                else:
+                    fid = self.register_new_face(frame, face_encoding)
 
-                self.face_names.append(name)
+                self.face_ids.append(fid)
 
         self.process_this_frame = not self.process_this_frame
 
         # Display the results
-        for (top, right, bottom, left), name in zip(self.face_locations, self.face_names):
+        for (top, right, bottom, left), fid in zip(self.face_locations, self.face_ids):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top *= 4
             right *= 4
@@ -96,11 +110,13 @@ class FaceRecognizer:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
             # Draw a label with a name below the face
-            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+            cv2.rectangle(frame, (left, bottom - 35),
+                          (right, bottom), (0, 0, 255), cv2.FILLED)
             font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, 'Face ID [{}]'.format(name), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+            cv2.putText(frame, 'Face ID [{}]'.format(
+                fid), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-        return frame, self.face_names
+        return frame, self.face_ids
 
     def get_jpg_bytes(self):
         frame = self.get_frame()
@@ -139,7 +155,8 @@ def to_ros_msg(data):
             'source': 'vision',
             'target': ['planning'],
             'content': 'face_recognition',
-            'id': _count+1
+            'id': _count+1,
+            'timestamp': str(time.time())
         },
         'face_recognition': {
             'face_id': data,
@@ -155,7 +172,8 @@ if __name__ == '__main__':
     rospy.init_node('vision_node')
     rospy.loginfo('Start Vision')
     publisher = rospy.Publisher('/recognition/face_id', String, queue_size=10)
-    img_pub = rospy.Publisher("/recognition/image/compressed", CompressedImage, queue_size=10)
+    img_pub = rospy.Publisher(
+        "/recognition/image/compressed", CompressedImage, queue_size=10)
     bridge = CvBridge()
 
     fr = FaceRecognizer()
