@@ -34,14 +34,18 @@ class FaceRecognizer:
         files = os.listdir(self.dirname)
         for filename in files:
             fid, ext = os.path.splitext(filename)
+
+            if ext != '.jpg':
+                continue
+
             fid = int(fid.split('_')[0])
-            if ext == '.jpg':
-                pathname = os.path.join(self.dirname, filename)
-                img = face_recognition.load_image_file(pathname)
-                face_encoding = face_recognition.face_encodings(img).get(0)
-                if face_encoding is not None:
-                    self.known_face_ids.append(fid)
-                    self.known_face_encodings.append(face_encoding)
+            pathname = os.path.join(self.dirname, filename)
+            img = face_recognition.load_image_file(pathname)
+            face_encodings = face_recognition.face_encodings(img)
+
+            if face_encodings:
+                self.known_face_ids.append(fid)
+                self.known_face_encodings.append(face_encodings[0])
 
         # Initialize some variables
         self.face_locations = []
