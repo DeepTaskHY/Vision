@@ -11,7 +11,8 @@ from cv_bridge import CvBridge, CvBridgeError
 from dtroslib.helpers import get_package_path
 from sensor_msgs.msg import CompressedImage, CameraInfo
 from std_msgs.msg import String
-
+import threading
+from glob import glob
 
 test_path = get_package_path('vision')
 # test_path = '..'
@@ -64,6 +65,15 @@ class FaceRecognizer:
         self.known_face_ids.append(new_face_id)
         return new_face_id
 
+    def register_face(self, face_img, face_id, face_encoding):
+        face_img_files = glob(os.path.join(self.dirname, f'{face_id}_*.jpg'))
+        file_cnt = len(face_img_files)
+        if file_cnt < 20:
+            filename = os.path.join(self.dirname, f'{face_id}_{file_cnt}.jpg')
+            cv2.imwrite(filename, face_img)
+            self.known_face_ids.append(face_id)
+            self.known_face_encodings.append(face_encoding)
+
     def get_frame(self):
         # Grab a single frame of video
         frame = self.camera.get_frame()
@@ -93,12 +103,18 @@ class FaceRecognizer:
                 # 0.6 is typical best performance.
                 # name = "Unknown"
                 if min_value < 0.6:
+                    # register known face
                     index = np.argmin(distances)
                     fid = self.known_face_ids[index]
+                    if min_value > 0.4:
+                        self.register_face(frame, fid, face_encoding)
+                    self.face_ids.append(fid)
+                elif min_value > 0.8:
+                    fid = len(set(self.known_face_ids))+1
+                    self.register_face(frame, fid, face_encoding)
+                    self.face_ids.append(fid)
                 else:
-                    fid = self.register_new_face(frame, face_encoding)
-
-                self.face_ids.append(fid)
+                    pass
 
         self.process_this_frame = not self.process_this_frame
 
@@ -136,7 +152,7 @@ class VideoCamera(object):
         # Using OpenCV to capture from device 0. If you have trouble capturing
         # from a webcam, comment the line below out and use a video file
         # instead.
-        self.video = cv2.VideoCapture(int(os.environ['CANEMRA_INDEX']))
+        self.video = cv2.VideoCapture(int(os.environ['CAMERA_INDEX']))
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
@@ -173,6 +189,7 @@ def to_ros_msg(data):
 
 
 if __name__ == '__main__':
+    global _get_fid
     rospy.init_node('vision_node')
     rospy.loginfo('Start Vision')
     publisher = rospy.Publisher('/recognition/face_id', String, queue_size=10)
