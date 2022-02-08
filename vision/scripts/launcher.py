@@ -53,6 +53,7 @@ class FaceRecognizer:
         self.face_encodings = []
         self.face_ids = []
         self.process_this_frame = True
+        self.temp_var = None
 
     def __del__(self):
         del self.camera
@@ -68,7 +69,7 @@ class FaceRecognizer:
     def register_face(self, face_img, face_id, face_encoding):
         face_img_files = glob(os.path.join(self.dirname, f'{face_id}_*.jpg'))
         file_cnt = len(face_img_files)
-        if file_cnt < 20:
+        if file_cnt < 2:
             filename = os.path.join(self.dirname, f'{face_id}_{file_cnt}.jpg')
             cv2.imwrite(filename, face_img)
             self.known_face_ids.append(face_id)
@@ -98,18 +99,20 @@ class FaceRecognizer:
                 distances = face_recognition.face_distance(
                     self.known_face_encodings, face_encoding)
                 min_value = min(distances)
-
+                self.temp_var = min_value
                 # tolerance: How much distance between faces to consider it a match. Lower is more strict.
                 # 0.6 is typical best performance.
                 # name = "Unknown"
-                if min_value < 0.6:
+                if min_value < 0.25:
                     # register known face
                     index = np.argmin(distances)
                     fid = self.known_face_ids[index]
-                    if min_value > 0.4:
-                        self.register_face(frame, fid, face_encoding)
+                    self.register_face(frame, fid, face_encoding)
+                    # if min_value > 0.1:
+                    #     self.register_face(frame, fid, face_encoding)
+
                     self.face_ids.append(fid)
-                elif min_value > 0.8:
+                elif min_value > 0.6:
                     fid = len(set(self.known_face_ids))+1
                     self.register_face(frame, fid, face_encoding)
                     self.face_ids.append(fid)
@@ -133,8 +136,8 @@ class FaceRecognizer:
             cv2.rectangle(frame, (left, bottom - 35),
                           (right, bottom), (0, 0, 255), cv2.FILLED)
             font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, 'Face ID [{}]'.format(
-                fid), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+            cv2.putText(frame, 'Face ID [{}], {}'.format(
+                fid, self.temp_var), (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
         return frame, self.face_ids
 
